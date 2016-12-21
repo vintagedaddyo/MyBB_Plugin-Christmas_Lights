@@ -4,11 +4,11 @@
  *
  * File: christmas_lights.php
  * 
- * Authors: Jeremiah Johnson & Vintagedaddyo
+ * Authors: Jeremiah Johnson & Vintagedaddyo & juventiner
  *
  * MyBB Version: 1.8
  *
- * Plugin Version: 1.2
+ * Plugin Version: 1.3
  *
  * Based on http://www.schillmania.com/projects/snowstorm/
  * 
@@ -23,6 +23,8 @@ if(!defined("IN_MYBB"))
 
 $plugins->add_hook('admin_config_settings_change_commit', 'christmas_lights_admin_config_settings_change_commit');
 $plugins->add_hook('pre_output_page','christmas_lights_snowstorm');
+$plugins->add_hook("usercp_options_end", "christmas_lights_snowstorm_usercp");
+$plugins->add_hook("usercp_do_options_end", "christmas_lights_snowstorm_usercp");
 
 function christmas_lights_info()
 {
@@ -65,6 +67,15 @@ function christmas_lights_is_installed()
 	return 0;
 
    }
+
+   if($db->field_exists("christmas_lights_showSnowstorm", "users"))
+    {
+        return true;
+    }
+    else 
+    {
+        return false;
+    }
 	
 }
 
@@ -74,6 +85,11 @@ function christmas_lights_install()
    global $db, $lang;
 
    $lang->load("christmas_lights");
+
+    // Add field for user option
+    $db->query("ALTER TABLE ".TABLE_PREFIX."users ADD christmas_lights_showSnowstorm int NOT NULL default '1'");
+
+
 
    $setting_group = array(
 		'gid'			=> 'NULL',
@@ -99,6 +115,7 @@ function christmas_lights_install()
 	);
 
    $db->insert_query('settings', $myplugin_setting);
+
 
    rebuild_settings();
 
@@ -174,10 +191,14 @@ function christmas_lights_uninstall()
 {
 	global $db;
 
+      if($db->field_exists("christmas_lights_showSnowstorm", "users"))
+        $db->query("ALTER TABLE ".TABLE_PREFIX."users DROP COLUMN christmas_lights_showSnowstorm");
+
 	$db->query("DELETE FROM ".TABLE_PREFIX."settings WHERE name IN ('christmas_lights_smashable')");
 
 	$db->query("DELETE FROM ".TABLE_PREFIX."settinggroups WHERE name='christmas_lights'");
 
+  
 	rebuild_settings(); 
 
 }
@@ -208,11 +229,41 @@ function christmas_lights_admin_config_settings_change_commit()
    }
 }
 
+
+function christmas_lights_snowstorm_usercp() {
+    global $db, $mybb, $templates, $user, $lang;
+    $lang->load('christmas_lights');
+    
+    if($mybb->request_method == "post")
+    {
+        $update_array = array(
+            "christmas_lights_showSnowstorm" => intval($mybb->input['christmas_lights_showSnowstorm'])
+        );      
+        $db->update_query("users", $update_array, "uid = '".$user['uid']."'");
+    }
+    
+    $add_option = '</tr><tr>
+<td valign="top" width="1"><input type="checkbox" class="checkbox" name="christmas_lights_showSnowstorm" id="christmas_lights_showSnowstorm" value="1" {$GLOBALS[\'$christmas_lights_showSnowstormChecked\']} /></td>
+<td><span class="smalltext"><label for="christmas_lights_showSnowstorm">{$lang->christmas_lights_snowstorm_show_question}</label></span></td>';
+
+    $find = '{$lang->show_codebuttons}</label></span></td>';
+    $templates->cache['usercp_options'] = str_replace($find, $find.$add_option, $templates->cache['usercp_options']);
+    
+    $GLOBALS['$christmas_lights_showSnowstormChecked'] = '';
+    if($user['christmas_lights_showSnowstorm'])
+        $GLOBALS['$christmas_lights_showSnowstormChecked'] = "checked=\"checked\"";
+}
+
+
 function christmas_lights_snowstorm($page)
 {
-	global $mybb;
-	$page=str_replace('</head>','<script type="text/javascript" src="'.$mybb->settings['bburl'].'/inc/lights/snowstorm.js"></script></head>',$page);
-	return $page;
-}   
+    global $mybb;
+    
+    if($mybb->user['christmas_lights_showSnowstorm']) {
+        $page=str_replace('</head>','<script type="text/javascript" src="'.$mybb->settings['bburl'].'/inc/lights/snowstorm.js"></script></head>',$page);
+    }
+    
+    return $page;
+}
 
 ?>

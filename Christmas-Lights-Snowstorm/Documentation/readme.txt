@@ -23,6 +23,9 @@ Updated to version 1.2 for MyBB 1.8.x usage by Vintagedaddyo
 - added localization
 - added snowstorm.js for snowfall effect
 
+Updated to version 1.3 for MyBB 1.8.x usage by Vintagedaddyo
+- added option to turn the snowstorm on or off in the usercp
+
 To Install:
 
 Upload The Files, And Go to Admin CP And Active IT!
